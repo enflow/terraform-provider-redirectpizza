@@ -13,3 +13,12 @@ func getAuthTokenSchema() *schema.Schema {
 		Sensitive:    true,
 	}
 }
+
+func getApiBaseUrlSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:      schema.TypeString,
+		Optional:  true,
+		Sensitive: false,
+		Default:   "https://redirect.pizza/api/",
+	}
+}

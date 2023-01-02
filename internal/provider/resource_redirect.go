@@ -19,7 +19,7 @@ import (
 func resourceRedirect() *schema.Resource {
 	return &schema.Resource{
 		// This description is used by the documentation generator and the language server.
-		Description: "Sample resource in the Terraform provider scaffolding.",
+		Description: "redirect.pizza Redirect.",
 
 		CreateContext: resourceRedirectCreate,
 		ReadContext:   resourceRedirectRead,
@@ -35,11 +35,11 @@ func resourceRedirect() *schema.Resource {
 				},
 				Required: true,
 				MinItems: 1,
-				MaxItems: 10, // TODO @ Mbardelmeijer
+				MaxItems: 1000,
 			},
 			"destination": {
 				Description: "The URL(s)where the user is redirected to.",
-				Type:        schema.TypeList, // TODO Is this list ordered (TypeList) or unordered (TypeSet)? @ Mbardelmeijer
+				Type:        schema.TypeList, // The order of the destinations is relevant. Therefore this is a TypeList instead of a Set
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"url": {
@@ -57,6 +57,29 @@ func resourceRedirect() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				ValidateDiagFunc: redirectTypeValidator,
+			},
+
+			"keep_query_string": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
+			"enable_tracking": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
+			"enable_uri_forwarding": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
+			"tags": {
+				Type: schema.TypeSet,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Optional: true,
 			},
 		},
 	}
@@ -89,9 +112,8 @@ func resourceRedirectCreate(ctx context.Context, d *schema.ResourceData, meta an
 		Sources:      []string{},
 		RedirectType: d.Get("redirect_type").(string),
 
-		// TODO: Do these defaults make sense?
-		UriForwarding:   true,
-		KeepQueryString: true,
+		UriForwarding:   false,
+		KeepQueryString: false,
 		Tracking:        true,
 		Tags:            []string{},
 	}
@@ -108,7 +130,7 @@ func resourceRedirectCreate(ctx context.Context, d *schema.ResourceData, meta an
 
 	apiClientData := meta.(*apiClient)
 	client := &http.Client{}
-	req, _ := http.NewRequest("POST", "https://redirect.pizza/api/v1/redirects", bytes.NewReader(reqBody))
+	req, _ := http.NewRequest("POST", apiClientData.baseUrl+"v1/redirects", bytes.NewReader(reqBody))
 	req.Header.Set("Authorization", "Bearer "+apiClientData.authToken)
 	req.Header.Set("User-Agent", apiClientData.userAgent)
 	resp, err := client.Do(req)
@@ -138,18 +160,18 @@ func resourceRedirectCreate(ctx context.Context, d *schema.ResourceData, meta an
 // TODO @Mbardelmeijer: De docs kloppen niet? De response zit in een 'data {}' blok die niet in de docs staan?
 type httpResponseData struct {
 	Data struct {
-		Id      uint64 `json:"id"` // TODO @Mbardelmeijer: volgens de docs is dit een string, maar ik krijg een integer terug?
+		Id      uint64 `json:"id"`
 		Sources []struct {
-			Id  uint64 `json:"id"` // TODO @Mbardelmeijer: volgens de docs is dit een string, maar ik krijg een integer terug?
+			Id  uint64 `json:"id"`
 			Url string `json:"url"`
 		} `json:"sources"`
 		Domains []struct {
-			Id           int64  `json:"id"` // TODO @Mbardelmeijer: volgens de docs is dit een string, maar ik krijg een integer terug?
+			Id           int64  `json:"id"`
 			Fqdn         string `json:"fqdn"`
 			IsRootDomain bool   `json:"is_root_domain"`
 			Dns          struct {
 				Verified         bool `json:"verified"`
-				RequiredSettings []struct { // TODO @mbardelmeijer: Volgens de docs is dit geen array?
+				RequiredSettings []struct {
 					Type  string `json:"type"`
 					Value string `json:"value"`
 				} `json:"required_settings"`
@@ -174,7 +196,7 @@ type httpResponseData struct {
 func resourceRedirectRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	apiClientData := meta.(*apiClient)
 	client := &http.Client{}
-	req, _ := http.NewRequest("GET", "https://redirect.pizza/api/v1/redirects/"+d.Id(), bytes.NewReader([]byte{}))
+	req, _ := http.NewRequest("GET", apiClientData.baseUrl+"v1/redirects/"+d.Id(), bytes.NewReader([]byte{}))
 	req.Header.Set("Authorization", "Bearer "+apiClientData.authToken)
 	req.Header.Set("User-Agent", apiClientData.userAgent)
 	resp, err := client.Do(req)
@@ -197,13 +219,21 @@ func resourceRedirectRead(ctx context.Context, d *schema.ResourceData, meta any)
 
 	d.SetId(d.Id())
 	d.Set("destination.0.url", respData.Data.Destination)
-	for i, src := range respData.Data.Sources {
-		// TODO: Do we need/want to do antyhing with sources.%d.id?
-		d.Set(fmt.Sprintf("sources.%d.url", i), src)
-	}
-	d.Set("redirect_type", respData.Data.RedirectType)
 
-	// TODO: Other values like keep_query_string, tracking & tags
+	sources := make([]interface{}, len(respData.Data.Sources), len(respData.Data.Sources))
+	for i, src := range respData.Data.Sources {
+		source := map[string]interface{}{
+			"url": src.Url,
+		}
+		sources[i] = source
+	}
+	d.Set("sources", sources)
+	d.Set("redirect_type", respData.Data.RedirectType)
+	d.Set("keep_query_string", respData.Data.KeepQueryString)
+	d.Set("enable_uri_forwarding", respData.Data.UriForwarding)
+	d.Set("enable_tracking", respData.Data.Tracking)
+	d.Set("tags", respData.Data.Tags)
+
 	return diag.Diagnostics{}
 }
 

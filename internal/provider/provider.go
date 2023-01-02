@@ -32,7 +32,8 @@ func New(version string) func() *schema.Provider {
 				"redirectpizza_redirect": resourceRedirect(),
 			},
 			Schema: map[string]*schema.Schema{
-				"token": getAuthTokenSchema(),
+				"token":        getAuthTokenSchema(),
+				"api_base_url": getApiBaseUrlSchema(),
 			},
 		}
 
@@ -44,16 +45,19 @@ func New(version string) func() *schema.Provider {
 
 type apiClient struct {
 	userAgent string
+	baseUrl   string
 	authToken string
 }
 
 func configure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (any, diag.Diagnostics) {
 	return func(ctx context.Context, data *schema.ResourceData) (any, diag.Diagnostics) {
 		token := data.Get("token").(string)
+		baseUrl := data.Get("api_base_url").(string)
 		userAgent := p.UserAgent("terraform-provider-redirectpizza", version)
 
 		return &apiClient{
 			userAgent: userAgent,
+			baseUrl:   baseUrl,
 			authToken: token, // TODO: Validate that the token is set?
 		}, nil
 	}
