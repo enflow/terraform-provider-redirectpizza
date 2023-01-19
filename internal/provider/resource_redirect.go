@@ -59,19 +59,23 @@ func resourceRedirect() *schema.Resource {
 				ValidateDiagFunc: redirectTypeValidator,
 			},
 
+			// default: false
 			"keep_query_string": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  false,
 			},
 
 			"enable_tracking": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  true,
 			},
 
 			"enable_uri_forwarding": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  false,
 			},
 
 			"tags": {
@@ -99,33 +103,7 @@ func redirectTypeValidator(i interface{}, _ cty.Path) diag.Diagnostics {
 
 // https://redirect.pizza/docs#tag/Redirects/operation/createRedirect
 func resourceRedirectCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	type httpCreateData struct {
-		Sources         []string `json:"sources"`
-		Destination     string   `json:"destination"`
-		RedirectType    string   `json:"redirect_type"`
-		UriForwarding   bool     `json:"uri_forwarding"`
-		KeepQueryString bool     `json:"keep_query_string"`
-		Tracking        bool     `json:"tracking"`
-		Tags            []string `json:"tags"`
-	}
-	data := &httpCreateData{
-		Sources:      []string{},
-		RedirectType: d.Get("redirect_type").(string),
-
-		UriForwarding:   false,
-		KeepQueryString: false,
-		Tracking:        true,
-		Tags:            []string{},
-	}
-
-	for _, source := range d.Get("sources").(*schema.Set).List() {
-		data.Sources = append(data.Sources, source.(string))
-	}
-
-	for _, destination := range d.Get("destination").([]interface{}) {
-		data.Destination = destination.(map[string]interface{})["url"].(string)
-	}
-
+	data := hydrateHttpPersistData(d)
 	reqBody, _ := json.Marshal(data)
 
 	apiClientData := meta.(*apiClient)
@@ -138,11 +116,11 @@ func resourceRedirectCreate(ctx context.Context, d *schema.ResourceData, meta an
 		return diag.Errorf("Cannot execute http request: %s", err.Error())
 	}
 
+	respBody, err := io.ReadAll(resp.Body)
 	if resp.StatusCode != 201 {
-		return diag.Errorf("Expected status code 201 but got %d", resp.StatusCode)
+		return diag.Errorf("Expected status code 201 but got %d: %s", resp.StatusCode, string(respBody))
 	}
 
-	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return diag.Errorf("Cannot read response body: %s", err.Error())
 	}
@@ -238,10 +216,70 @@ func resourceRedirectRead(ctx context.Context, d *schema.ResourceData, meta any)
 }
 
 func resourceResourceUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	// use the meta value to retrieve your client from the provider configure method
-	// client := meta.(*apiClient)
+	data := hydrateHttpPersistData(d)
+	reqBody, _ := json.Marshal(data)
 
-	return diag.Errorf("updating not implemented")
+	apiClientData := meta.(*apiClient)
+	client := &http.Client{}
+	req, _ := http.NewRequest("PUT", apiClientData.baseUrl+"v1/redirects/"+d.Id(), bytes.NewReader(reqBody))
+	req.Header.Set("Authorization", "Bearer "+apiClientData.authToken)
+	req.Header.Set("User-Agent", apiClientData.userAgent)
+	resp, err := client.Do(req)
+	if err != nil {
+		return diag.Errorf("Cannot execute http request: %s", err.Error())
+	}
+
+	respBody, err := io.ReadAll(resp.Body)
+	if resp.StatusCode != 200 {
+		return diag.Errorf("Expected status code 200 but got %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	if err != nil {
+		return diag.Errorf("Cannot read response body: %s", err.Error())
+	}
+
+	respObj := &httpResponseData{}
+	if err := json.Unmarshal(respBody, respObj); err != nil {
+		return diag.Errorf("Cannot unmarshal response json: %s", err.Error())
+	}
+
+	d.SetId(fmt.Sprintf("%d", respObj.Data.Id))
+	tflog.Trace(ctx, "Successfully updated resource with id "+fmt.Sprintf("%d", respObj.Data.Id))
+	return diag.Diagnostics{}
+}
+
+type httpPersistData struct {
+	Sources         []string `json:"sources"`
+	Destination     string   `json:"destination"`
+	RedirectType    string   `json:"redirect_type"`
+	UriForwarding   bool     `json:"uri_forwarding"`
+	KeepQueryString bool     `json:"keep_query_string"`
+	Tracking        bool     `json:"tracking"`
+	Tags            []string `json:"tags"`
+}
+
+func hydrateHttpPersistData(d *schema.ResourceData) *httpPersistData {
+	tags := []string{}
+	for _, tag := range d.Get("tags").(*schema.Set).List() {
+		tags = append(tags, tag.(string))
+	}
+	data := &httpPersistData{
+		Sources:      []string{},
+		RedirectType: d.Get("redirect_type").(string),
+
+		UriForwarding:   d.Get("enable_uri_forwarding").(bool),
+		KeepQueryString: d.Get("keep_query_string").(bool),
+		Tracking:        d.Get("enable_tracking").(bool),
+		Tags:            tags,
+	}
+
+	for _, source := range d.Get("sources").(*schema.Set).List() {
+		data.Sources = append(data.Sources, source.(string))
+	}
+	for _, destination := range d.Get("destination").([]interface{}) {
+		data.Destination = destination.(map[string]interface{})["url"].(string)
+	}
+	return data
 }
 
 func resourceRedirectDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
