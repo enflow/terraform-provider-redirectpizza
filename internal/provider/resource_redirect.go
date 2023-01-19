@@ -283,8 +283,24 @@ func hydrateHttpPersistData(d *schema.ResourceData) *httpPersistData {
 }
 
 func resourceRedirectDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	// use the meta value to retrieve your client from the provider configure method
-	// client := meta.(*apiClient)
+	apiClientData := meta.(*apiClient)
+	client := &http.Client{}
+	req, _ := http.NewRequest("DELETE", apiClientData.baseUrl+"v1/redirects/"+d.Id(), bytes.NewReader([]byte{}))
+	req.Header.Set("Authorization", "Bearer "+apiClientData.authToken)
+	req.Header.Set("User-Agent", apiClientData.userAgent)
+	resp, err := client.Do(req)
+	if err != nil {
+		return diag.Errorf("Cannot execute http request: %s", err.Error())
+	}
+	if resp.StatusCode != 204 {
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			body = []byte("<cannot read>")
+		}
 
-	return diag.Errorf("delete not implemented")
+		return diag.Errorf("Expected http status 204, received: %d. Error: %s", resp.StatusCode, string(body))
+	}
+
+	d.SetId("")
+	return diag.Diagnostics{}
 }
