@@ -75,21 +75,21 @@ func resourceRedirect() *schema.Resource {
 
 			"uri_forwarding": {
 				Description: "Whether the path should be forwarded to the destination.",
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
 			},
 
 			"tracking": {
 				Description: "Whether analytical information should be collected.",
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  true,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
 			},
 
 			"tags": {
 				Description: "Used to categorize redirects. May be an array or a string of comma-separated tags",
-				Type: schema.TypeSet,
+				Type:        schema.TypeSet,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
