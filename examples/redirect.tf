@@ -18,8 +18,8 @@ resource "redirectpizza_redirect" "old-source" {
   redirect_type = "permanent"
 
   # Optional
-  enable_tracking       = true
-  enable_uri_forwarding = true
-  keep_query_string     = false
-  tags                  = ["prod", "dev"]
+  tracking          = true
+  uri_forwarding    = true
+  keep_query_string = false
+  tags              = ["prod", "dev"]
 }

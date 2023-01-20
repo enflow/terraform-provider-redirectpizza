@@ -63,8 +63,8 @@ resource "redirectpizza_redirect" "old-domain" {
   redirect_type = "permanent"
 
   # Optional
-  enable_tracking       = true
-  enable_uri_forwarding = true
+  tracking       = true
+  uri_forwarding = true
   keep_query_string     = false
   tags                  = ["prod", "dev"]
 }
