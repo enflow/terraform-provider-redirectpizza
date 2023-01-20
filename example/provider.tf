@@ -12,5 +12,4 @@ provider "redirectpizza" {
 
   # Optional, no need to specify:
   # api_base_url = "https://redirect.pizza/api/"
-
 }

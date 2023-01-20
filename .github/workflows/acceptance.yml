@@ -1,0 +1,48 @@
+# Derived from https://github.com/issyl0/terraform-provider-improvmx/blob/main/.github/workflows/acceptance.yml
+
+name: Real Provider Tests
+
+on: [pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      REDIRECTPIZZA_API_TOKEN: ${{ secrets.REDIRECTPIZZA_TF_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.19
+      - run: |
+          go mod download
+          go build .
+
+      - uses: hashicorp/setup-terraform@v1
+      - run: |
+          cat <<~EOF >> ~/.terraformrc
+            provider_installation {
+              dev_overrides {
+                "github.com/enflow/redirectpizza" = "/home/runner/work/terraform-provider-redirectpizza/terraform-provider-redirectpizza"
+              }
+            }
+          ~EOF
+
+      - name: plan
+        run: terraform plan
+        working-directory: tests/acceptance/
+
+      - name: apply
+        run: terraform apply -auto-approve
+        working-directory: tests/acceptance/
+
+      - name: import
+        run: |
+          terraform state rm redirectpizza_redirect.testing-domain
+          terraform import redirectpizza_redirect.testing-domain redirect-pizza-terraform-testing-domain.com
+        working-directory: tests/acceptance/
+
+      - name: destroy
+        run: terraform destroy -auto-approve
+        working-directory: tests/acceptance/

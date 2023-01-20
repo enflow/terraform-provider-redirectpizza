@@ -9,8 +9,8 @@ func getAuthTokenSchema() *schema.Schema {
 		Optional:     false,
 		Computed:     false,
 		ForceNew:     false,
-		ValidateFunc: nil, // Validate me?
 		Sensitive:    true,
+		DefaultFunc:  schema.EnvDefaultFunc("REDIRECTPIZZA_API_TOKEN", nil),
 	}
 }
 

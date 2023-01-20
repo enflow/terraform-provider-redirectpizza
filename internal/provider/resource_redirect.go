@@ -37,6 +37,7 @@ func resourceRedirect() *schema.Resource {
 				MinItems: 1,
 				MaxItems: 1000,
 			},
+
 			"destination": {
 				Description: "The URL(s)where the user is redirected to.",
 				Type:        schema.TypeList, // The order of the destinations is relevant. Therefore this is a TypeList instead of a Set
@@ -53,26 +54,27 @@ func resourceRedirect() *schema.Resource {
 				MinItems: 1,
 				MaxItems: 1,
 			},
-			"redirect_type": { // TODO: Validate allowed values
+
+			"redirect_type": {
 				Type:             schema.TypeString,
-				Required:         true,
+				Optional:         true,
 				ValidateDiagFunc: redirectTypeValidator,
+				Default:          "permanent",
 			},
 
-			// default: false
 			"keep_query_string": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
 
-			"enable_tracking": {
+			"tracking": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
 
-			"enable_uri_forwarding": {
+			"uri_forwarding": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
@@ -135,7 +137,6 @@ func resourceRedirectCreate(ctx context.Context, d *schema.ResourceData, meta an
 	return diag.Diagnostics{}
 }
 
-// TODO @Mbardelmeijer: De docs kloppen niet? De response zit in een 'data {}' blok die niet in de docs staan?
 type httpResponseData struct {
 	Data struct {
 		Id      uint64 `json:"id"`
@@ -208,8 +209,8 @@ func resourceRedirectRead(ctx context.Context, d *schema.ResourceData, meta any)
 	d.Set("sources", sources)
 	d.Set("redirect_type", respData.Data.RedirectType)
 	d.Set("keep_query_string", respData.Data.KeepQueryString)
-	d.Set("enable_uri_forwarding", respData.Data.UriForwarding)
-	d.Set("enable_tracking", respData.Data.Tracking)
+	d.Set("uri_forwarding", respData.Data.UriForwarding)
+	d.Set("tracking", respData.Data.Tracking)
 	d.Set("tags", respData.Data.Tags)
 
 	return diag.Diagnostics{}
@@ -267,9 +268,9 @@ func hydrateHttpPersistData(d *schema.ResourceData) *httpPersistData {
 		Sources:      []string{},
 		RedirectType: d.Get("redirect_type").(string),
 
-		UriForwarding:   d.Get("enable_uri_forwarding").(bool),
+		UriForwarding:   d.Get("uri_forwarding").(bool),
 		KeepQueryString: d.Get("keep_query_string").(bool),
-		Tracking:        d.Get("enable_tracking").(bool),
+		Tracking:        d.Get("tracking").(bool),
 		Tags:            tags,
 	}
 
