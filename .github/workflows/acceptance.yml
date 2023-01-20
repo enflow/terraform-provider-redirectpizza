@@ -40,7 +40,7 @@ jobs:
       - name: import
         run: |
           terraform state rm redirectpizza_redirect.testing-domain
-          terraform import redirectpizza_redirect.testing-domain 1940590612
+          terraform import redirectpizza_redirect.testing-domain 1717388189
         working-directory: tests/acceptance/
 
       - name: destroy
