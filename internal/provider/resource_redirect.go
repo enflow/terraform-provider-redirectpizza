@@ -19,12 +19,15 @@ import (
 func resourceRedirect() *schema.Resource {
 	return &schema.Resource{
 		// This description is used by the documentation generator and the language server.
-		Description: "redirect.pizza Redirect.",
+		Description: "A redirect is a resource that may contain multiple sources to a single destination.",
 
 		CreateContext: resourceRedirectCreate,
 		ReadContext:   resourceRedirectRead,
 		UpdateContext: resourceResourceUpdate,
 		DeleteContext: resourceRedirectDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"sources": {
@@ -56,6 +59,7 @@ func resourceRedirect() *schema.Resource {
 			},
 
 			"redirect_type": {
+				Description:      "The type of redirect to use.",
 				Type:             schema.TypeString,
 				Optional:         true,
 				ValidateDiagFunc: redirectTypeValidator,
@@ -63,24 +67,28 @@ func resourceRedirect() *schema.Resource {
 			},
 
 			"keep_query_string": {
+				Description: "Whether the query string should be forwarded to the destination URL.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+			},
+
+			"uri_forwarding": {
+				Description: "Whether the path should be forwarded to the destination.",
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
 
 			"tracking": {
+				Description: "Whether analytical information should be collected.",
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
 
-			"uri_forwarding": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-			},
-
 			"tags": {
+				Description: "Used to categorize redirects. May be an array or a string of comma-separated tags",
 				Type: schema.TypeSet,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
