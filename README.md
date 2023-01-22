@@ -81,10 +81,4 @@ To compile the provider, run `go install`. This will build the provider and put 
 
 To generate or update documentation, run `go generate`.
 
-In order to run the full suite of Acceptance tests, run `make testacc`.
-
-*Note:* Acceptance tests create real resources, and often cost money to run.
-
-```sh
-$ make testacc
-```
+To run locally, run `(cd ..; export GOBIN=$(pwd); go install) && TF_LOG=WARN REDIRECTPIZZA_API_TOKEN=rpa_xxxxxxxxxxxx terraform apply` in the `examples/` directory.

@@ -88,7 +88,7 @@ func resourceRedirect() *schema.Resource {
 			},
 
 			"tags": {
-				Description: "Used to categorize redirects. May be an array or a string of comma-separated tags",
+				Description: "Used to categorize redirects. May be an array or a string of comma-separated tags.",
 				Type:        schema.TypeSet,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
