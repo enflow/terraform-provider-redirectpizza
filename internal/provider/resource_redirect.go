@@ -18,7 +18,6 @@ import (
 
 func resourceRedirect() *schema.Resource {
 	return &schema.Resource{
-		// This description is used by the documentation generator and the language server.
 		Description: "A redirect is a resource that may contain multiple sources to a single destination.",
 
 		CreateContext: resourceRedirectCreate,

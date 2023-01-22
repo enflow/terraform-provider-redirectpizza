@@ -24,7 +24,7 @@ A redirect is a resource that may contain multiple sources to a single destinati
 
 - `keep_query_string` (Boolean) Whether the query string should be forwarded to the destination URL.
 - `redirect_type` (String) The type of redirect to use.
-- `tags` (Set of String) Used to categorize redirects. May be an array or a string of comma-separated tags
+- `tags` (Set of String) Used to categorize redirects. May be an array or a string of comma-separated tags.
 - `tracking` (Boolean) Whether analytical information should be collected.
 - `uri_forwarding` (Boolean) Whether the path should be forwarded to the destination.
 
