@@ -8,7 +8,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      REDIRECTPIZZA_API_TOKEN: ${{ secrets.REDIRECTPIZZA_TF_API_TOKEN }}
+      TF_VAR_rp_api_token: ${{ secrets.REDIRECTPIZZA_TF_API_TOKEN }}
     steps:
       - uses: actions/checkout@v3
 

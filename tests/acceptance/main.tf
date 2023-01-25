@@ -6,7 +6,13 @@ terraform {
   }
 }
 
-provider "redirectpizza" { }
+# Set the variable value in *.tfvars file
+# or using -var="rp_api_token=..." CLI option
+variable "rp_api_token" {}
+
+provider "redirectpizza" {
+  token = var.rp_api_token
+}
 
 resource "redirectpizza_redirect" "testing-domain" {
   sources = [

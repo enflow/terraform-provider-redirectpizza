@@ -10,7 +10,6 @@ func getAuthTokenSchema() *schema.Schema {
 		Computed:    false,
 		ForceNew:    false,
 		Sensitive:   true,
-		DefaultFunc: schema.EnvDefaultFunc("REDIRECTPIZZA_API_TOKEN", nil),
 	}
 }
 

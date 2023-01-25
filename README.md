@@ -12,12 +12,17 @@ terraform {
   required_providers {
     redirectpizza = {
       source  = "github.com/enflow/redirectpizza"
+      version = "0.1.0"
     }
   }
 }
 
+# Set the variable value in *.tfvars file
+# or using -var="rp_token=..." CLI option
+variable "rp_token" {}
+
 provider "redirectpizza" {
-  token = "rpa_XXXXXXXXXXXXX" # Or set the `REDIRECTPIZZA_API_TOKEN` environment variable.
+  token = var.rp_token
 }
 
 resource "redirectpizza_redirect" "old-domain" {
@@ -81,4 +86,4 @@ To compile the provider, run `go install`. This will build the provider and put 
 
 To generate or update documentation, run `go generate`.
 
-To run locally, run `(cd ..; export GOBIN=$(pwd); go install) && TF_LOG=WARN REDIRECTPIZZA_API_TOKEN=rpa_xxxxxxxxxxxx terraform apply` in the `examples/` directory.
+To run locally, run `(cd ..; export GOBIN=$(pwd); go install) && TF_LOG=WARN TF_VAR_rp_token=rpa_xxxxxxxxxxxx terraform apply` in the `examples/` directory.
