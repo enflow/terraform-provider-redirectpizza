@@ -1,19 +1,54 @@
-# Terraform Provider Scaffolding (Terraform Plugin SDK)
+# redirect.pizza Terraform Provider
 
-_This template repository is built on the [Terraform Plugin SDK](https://github.com/hashicorp/terraform-plugin-sdk). The template repository built on the [Terraform Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework) can be found at [terraform-provider-scaffolding-framework](https://github.com/hashicorp/terraform-provider-scaffolding-framework). See [Which SDK Should I Use?](https://www.terraform.io/docs/plugin/which-sdk.html) in the Terraform documentation for additional information._
+Terraform provider for [redirect.pizza](https://redirect.pizza). This provides provides a single resource `redirectpizza_redirect` to manage all your redirecting needs.
 
-This repository is a *template* for a [Terraform](https://www.terraform.io) provider. It is intended as a starting point for creating Terraform providers, containing:
+We recommend using the `redirectpizza_redirect` in combination with your DNS Terraform provider is used. 
+You may hardcode the values from https://redirect.pizza/support/dns-type to use for your DNS records or your own [Dedicated IP](https://redirect.pizza/support/dedicated-ip) address.
 
- - A resource, and a data source (`internal/provider/`),
- - Examples (`examples/`) and generated documentation (`docs/`),
- - Miscellaneous meta files.
- 
-These files contain boilerplate code that you will need to edit to create your own Terraform provider. Tutorials for creating Terraform providers can be found on the [HashiCorp Learn](https://learn.hashicorp.com/collections/terraform/providers) platform.
+## Using the provider
 
-Please see the [GitHub template repository documentation](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-from-a-template) for how to create a new repository from this template on GitHub.
+```
+terraform {
+  required_providers {
+    redirectpizza = {
+      source  = "github.com/enflow/redirectpizza"
+      version = "0.1.0"
+    }
+  }
+}
 
-Once you've written your provider, you'll want to [publish it on the Terraform Registry](https://www.terraform.io/docs/registry/providers/publishing.html) so that others can use it.
+# Set the variable value in *.tfvars file
+# or using -var="rp_token=..." CLI option
+variable "rp_token" {}
 
+provider "redirectpizza" {
+  token = var.rp_token
+}
+
+resource "redirectpizza_redirect" "old-domain" {
+  sources = [
+    "old-domain.com"
+  ]
+  destination {
+    url = "new-domain.com"
+  }
+
+  # Optional
+  # Must be one of:
+  # - permanent
+  # - permanent:307
+  # - permanent:308
+  # - temporary
+  # - frame
+  redirect_type = "permanent"
+
+  # Optional
+  tracking       = true
+  uri_forwarding = true
+  keep_query_string     = false
+  tags                  = ["prod", "dev"]
+}
+```
 
 ## Requirements
 
@@ -43,10 +78,6 @@ go mod tidy
 
 Then commit the changes to `go.mod` and `go.sum`.
 
-## Using the provider
-
-Fill this in for each provider
-
 ## Developing the Provider
 
 If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (see [Requirements](#requirements) above).
@@ -55,10 +86,4 @@ To compile the provider, run `go install`. This will build the provider and put 
 
 To generate or update documentation, run `go generate`.
 
-In order to run the full suite of Acceptance tests, run `make testacc`.
-
-*Note:* Acceptance tests create real resources, and often cost money to run.
-
-```sh
-$ make testacc
-```
+To run locally, run `(cd ..; export GOBIN=$(pwd); go install) && TF_LOG=WARN TF_VAR_rp_token=rpa_xxxxxxxxxxxx terraform apply` in the `examples/` directory.

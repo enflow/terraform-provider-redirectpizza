@@ -1,6 +1,19 @@
-default: testacc
+default: build
 
-# Run acceptance tests
-.PHONY: testacc
-testacc:
-	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
+build:
+	go build -v ./...
+
+install: build
+	go install -v ./...
+
+# See https://golangci-lint.run/
+lint:
+	golangci-lint run
+
+generate:
+	go generate ./...
+
+fmt:
+	gofmt -s -w -e .
+
+.PHONY: build install lint generate fmt

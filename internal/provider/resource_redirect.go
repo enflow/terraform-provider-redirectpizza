@@ -18,13 +18,15 @@ import (
 
 func resourceRedirect() *schema.Resource {
 	return &schema.Resource{
-		// This description is used by the documentation generator and the language server.
-		Description: "redirect.pizza Redirect.",
+		Description: "A redirect is a resource that may contain multiple sources to a single destination.",
 
 		CreateContext: resourceRedirectCreate,
 		ReadContext:   resourceRedirectRead,
 		UpdateContext: resourceResourceUpdate,
 		DeleteContext: resourceRedirectDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"sources": {
@@ -37,6 +39,7 @@ func resourceRedirect() *schema.Resource {
 				MinItems: 1,
 				MaxItems: 1000,
 			},
+
 			"destination": {
 				Description: "The URL(s)where the user is redirected to.",
 				Type:        schema.TypeList, // The order of the destinations is relevant. Therefore this is a TypeList instead of a Set
@@ -53,33 +56,39 @@ func resourceRedirect() *schema.Resource {
 				MinItems: 1,
 				MaxItems: 1,
 			},
-			"redirect_type": { // TODO: Validate allowed values
+
+			"redirect_type": {
+				Description:      "The type of redirect to use.",
 				Type:             schema.TypeString,
-				Required:         true,
+				Optional:         true,
 				ValidateDiagFunc: redirectTypeValidator,
+				Default:          "permanent",
 			},
 
-			// default: false
 			"keep_query_string": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Description: "Whether the query string should be forwarded to the destination URL.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
 			},
 
-			"enable_tracking": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  true,
+			"uri_forwarding": {
+				Description: "Whether the path should be forwarded to the destination.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
 			},
 
-			"enable_uri_forwarding": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+			"tracking": {
+				Description: "Whether analytical information should be collected.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
 			},
 
 			"tags": {
-				Type: schema.TypeSet,
+				Description: "Used to categorize redirects. May be an array or a string of comma-separated tags.",
+				Type:        schema.TypeSet,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -135,7 +144,6 @@ func resourceRedirectCreate(ctx context.Context, d *schema.ResourceData, meta an
 	return diag.Diagnostics{}
 }
 
-// TODO @Mbardelmeijer: De docs kloppen niet? De response zit in een 'data {}' blok die niet in de docs staan?
 type httpResponseData struct {
 	Data struct {
 		Id      uint64 `json:"id"`
@@ -208,8 +216,8 @@ func resourceRedirectRead(ctx context.Context, d *schema.ResourceData, meta any)
 	d.Set("sources", sources)
 	d.Set("redirect_type", respData.Data.RedirectType)
 	d.Set("keep_query_string", respData.Data.KeepQueryString)
-	d.Set("enable_uri_forwarding", respData.Data.UriForwarding)
-	d.Set("enable_tracking", respData.Data.Tracking)
+	d.Set("uri_forwarding", respData.Data.UriForwarding)
+	d.Set("tracking", respData.Data.Tracking)
 	d.Set("tags", respData.Data.Tags)
 
 	return diag.Diagnostics{}
@@ -267,9 +275,9 @@ func hydrateHttpPersistData(d *schema.ResourceData) *httpPersistData {
 		Sources:      []string{},
 		RedirectType: d.Get("redirect_type").(string),
 
-		UriForwarding:   d.Get("enable_uri_forwarding").(bool),
+		UriForwarding:   d.Get("uri_forwarding").(bool),
 		KeepQueryString: d.Get("keep_query_string").(bool),
-		Tracking:        d.Get("enable_tracking").(bool),
+		Tracking:        d.Get("tracking").(bool),
 		Tags:            tags,
 	}
 
