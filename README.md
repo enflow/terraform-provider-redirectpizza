@@ -55,6 +55,14 @@ resource "redirectpizza_redirect" "old-domain" {
 -	[Terraform](https://www.terraform.io/downloads.html) >= 0.13.x
 -	[Go](https://golang.org/doc/install) >= 1.18
 
+## Import
+To import existing redirect.pizza redirects to Terraform's state, you may use the `import` block. 
+The `id` can be found in the redirect.pizza's API response or in the URL when navigating to a specific redirect. Example: https://redirect.pizza/redirects/123123123
+
+```
+terraform import redirectpizza_redirect.old-domain.com 123123123
+```
+
 ## Building The Provider
 
 1. Clone the repository
