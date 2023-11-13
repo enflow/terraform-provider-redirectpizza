@@ -21,7 +21,7 @@ jobs:
           go mod download
           go build .
 
-      - uses: hashicorp/setup-terraform@v2
+      - uses: hashicorp/setup-terraform@v3
       - run: |
           cat <<~EOF >> ~/.terraformrc
             provider_installation {
