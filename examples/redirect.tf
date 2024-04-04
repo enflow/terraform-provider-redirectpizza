@@ -23,3 +23,26 @@ resource "redirectpizza_redirect" "old-source" {
   keep_query_string = false
   tags              = ["prod", "dev"]
 }
+
+# Dynamic destinations
+resource "redirectpizza_redirect" "old-source2" {
+  sources = [
+    "old-dynamic-source.com",
+  ]
+
+  destination {
+    url        = "new-fancy-site.nl"
+    expression = "country == 'NL'"
+
+    # Optional. Must be one of: inherit (default), enabled, disabled
+    monitoring = "enabled"
+  }
+  destination {
+    url        = "new-fancy-site.us"
+    expression = "country == 'US'"
+    monitoring = "disabled"
+  }
+  destination {
+    url = "new-fancy-site.com"
+  }
+}
