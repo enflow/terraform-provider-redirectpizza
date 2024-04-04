@@ -24,6 +24,7 @@ func resourceRedirect() *schema.Resource {
 		ReadContext:   resourceRedirectRead,
 		UpdateContext: resourceResourceUpdate,
 		DeleteContext: resourceRedirectDelete,
+		CustomizeDiff: destinationTypeValidator,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -50,11 +51,21 @@ func resourceRedirect() *schema.Resource {
 							Type:        schema.TypeString,
 							Required:    true,
 						},
+						"expression": {
+							Description: "The expression to evaluate for redirecting to the specified URL. Mandatory if multiple destinations are specified.",
+							Type:        schema.TypeString,
+							Optional:    true,
+						},
+						"monitoring": {
+							Description: "The monitoring status for this destination. (must be one of: 'inherit' - default, 'enabled', 'disabled')",
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "inherit",
+						},
 					},
 				},
 				Required: true,
 				MinItems: 1,
-				MaxItems: 1,
 			},
 
 			"redirect_type": {
@@ -98,6 +109,27 @@ func resourceRedirect() *schema.Resource {
 	}
 }
 
+func destinationTypeValidator(ctx context.Context, diff *schema.ResourceDiff, _ interface{}) error {
+	dstDiff := diff.Get("destination").([]interface{})
+	if len(dstDiff) < 2 {
+		return nil
+	}
+
+	expressionCount := 0
+	for _, v := range dstDiff {
+		vv := v.(map[string]interface{})
+		if expression, set := vv["expression"]; set && expression != "" {
+			expressionCount++
+		}
+	}
+
+	if expressionCount < len(dstDiff)-1 {
+		return fmt.Errorf("not all destinations have an expression specified but multiple destinations were defined")
+	}
+
+	return nil
+}
+
 func redirectTypeValidator(i interface{}, _ cty.Path) diag.Diagnostics {
 	input, _ := i.(string)
 	validRedirectTypes := []string{"permanent", "temporary", "frame", "permanent:308", "temporary:307"}
@@ -136,9 +168,9 @@ func resourceRedirectCreate(ctx context.Context, d *schema.ResourceData, meta an
 		return diag.Errorf("Cannot read response body: %s", err.Error())
 	}
 
-	respObj := &httpResponseData{}
-	if err := json.Unmarshal(respBody, respObj); err != nil {
-		return diag.Errorf("Cannot unmarshal response json: %s", err.Error())
+	respObj, err := parseApiResponse(respBody)
+	if err != nil {
+		return diag.Errorf("cannot parse api response: %v", err)
 	}
 
 	d.SetId(fmt.Sprintf("%d", respObj.Data.Id))
@@ -171,7 +203,8 @@ type httpResponseData struct {
 			CreatedAt time.Time `json:"created_at"`
 			UpdatedAt time.Time `json:"updated_at"`
 		} `json:"domains"`
-		Destination     string   `json:"destination"`
+		DestinationJson *json.RawMessage `json:"destination"`
+		Destinations    []httpDestination
 		RedirectType    string   `json:"redirect_type"`
 		UriForwarding   bool     `json:"uri_forwarding"`
 		KeepQueryString bool     `json:"keep_query_string"`
@@ -200,13 +233,17 @@ func resourceRedirectRead(ctx context.Context, d *schema.ResourceData, meta any)
 		return diag.Errorf("could not read http response body: %s", err.Error())
 	}
 
-	respData := &httpResponseData{}
-	if err := json.Unmarshal(body, respData); err != nil {
-		return diag.Errorf("cannot read json from API: %s", err.Error())
+	respData, err := parseApiResponse(body)
+	if err != nil {
+		return diag.Errorf("cannot parse api response: %v", err)
 	}
 
 	d.SetId(d.Id())
-	d.Set("destination.0.url", respData.Data.Destination)
+	for i, dst := range respData.Data.Destinations {
+		d.Set(fmt.Sprintf("destination.%d.url", i), dst.Url)
+		d.Set(fmt.Sprintf("destination.%d.expression", i), dst.Expression)
+		d.Set(fmt.Sprintf("destination.%d.monitoring", i), dst.Monitoring)
+	}
 
 	sources := make([]interface{}, len(respData.Data.Sources), len(respData.Data.Sources))
 	for i, src := range respData.Data.Sources {
@@ -248,9 +285,9 @@ func resourceResourceUpdate(ctx context.Context, d *schema.ResourceData, meta an
 		return diag.Errorf("Cannot read response body: %s", err.Error())
 	}
 
-	respObj := &httpResponseData{}
-	if err := json.Unmarshal(respBody, respObj); err != nil {
-		return diag.Errorf("Cannot unmarshal response json: %s", err.Error())
+	respObj, err := parseApiResponse(respBody)
+	if err != nil {
+		return diag.Errorf("cannot parse api response: %v", err)
 	}
 
 	d.SetId(fmt.Sprintf("%d", respObj.Data.Id))
@@ -258,15 +295,21 @@ func resourceResourceUpdate(ctx context.Context, d *schema.ResourceData, meta an
 	return diag.Diagnostics{}
 }
 
+type httpDestination struct {
+	Url        string `json:"url"`
+	Expression string `json:"expression"`
+	Monitoring string `json:"monitoring"`
+}
+
 type httpPersistData struct {
-	Sources         []string `json:"sources"`
-	Destination     string   `json:"destination"`
-	RedirectType    string   `json:"redirect_type"`
-	UriForwarding   bool     `json:"uri_forwarding"`
-	KeepQueryString bool     `json:"keep_query_string"`
-	Tracking        bool     `json:"tracking"`
-	Tags            []string `json:"tags"`
-	Merge           *bool    `json:"merge,omitempty"`
+	Sources         []string          `json:"sources"`
+	Destinations    []httpDestination `json:"destination"`
+	RedirectType    string            `json:"redirect_type"`
+	UriForwarding   bool              `json:"uri_forwarding"`
+	KeepQueryString bool              `json:"keep_query_string"`
+	Tracking        bool              `json:"tracking"`
+	Tags            []string          `json:"tags"`
+	Merge           *bool             `json:"merge,omitempty"`
 }
 
 func hydrateHttpPersistData(d *schema.ResourceData) *httpPersistData {
@@ -288,7 +331,11 @@ func hydrateHttpPersistData(d *schema.ResourceData) *httpPersistData {
 		data.Sources = append(data.Sources, source.(string))
 	}
 	for _, destination := range d.Get("destination").([]interface{}) {
-		data.Destination = destination.(map[string]interface{})["url"].(string)
+		data.Destinations = append(data.Destinations, httpDestination{
+			Url:        destination.(map[string]interface{})["url"].(string),
+			Expression: destination.(map[string]interface{})["expression"].(string),
+			Monitoring: destination.(map[string]interface{})["monitoring"].(string),
+		})
 	}
 	return data
 }
@@ -314,4 +361,21 @@ func resourceRedirectDelete(ctx context.Context, d *schema.ResourceData, meta an
 
 	d.SetId("")
 	return diag.Diagnostics{}
+}
+
+func parseApiResponse(respBody []byte) (*httpResponseData, error) {
+	respObj := &httpResponseData{}
+	if err := json.Unmarshal(respBody, respObj); err != nil {
+		return nil, fmt.Errorf("Cannot unmarshal response json: %v", err)
+	}
+
+	if err := json.Unmarshal(*respObj.Data.DestinationJson, &respObj.Data.Destinations); err != nil {
+		dst := httpDestination{}
+		if err2 := json.Unmarshal(*respObj.Data.DestinationJson, &dst.Url); err2 != nil {
+			return nil, fmt.Errorf("Cannot parse Destination as either a string (%v) or object (%v)", err2, err)
+		}
+		respObj.Data.Destinations = append(respObj.Data.Destinations, dst)
+	}
+
+	return respObj, nil
 }
