@@ -145,6 +145,8 @@ func redirectTypeValidator(i interface{}, _ cty.Path) diag.Diagnostics {
 // https://redirect.pizza/docs#tag/Redirects/operation/createRedirect
 func resourceRedirectCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	data := hydrateHttpPersistData(d)
+	merge := false // Do not use the merge functionality for resources managed by Terraform
+	data.Merge = &merge
 	reqBody, _ := json.Marshal(data)
 
 	apiClientData := meta.(*apiClient)
@@ -307,6 +309,7 @@ type httpPersistData struct {
 	KeepQueryString bool              `json:"keep_query_string"`
 	Tracking        bool              `json:"tracking"`
 	Tags            []string          `json:"tags"`
+	Merge           *bool             `json:"merge,omitempty"`
 }
 
 func hydrateHttpPersistData(d *schema.ResourceData) *httpPersistData {
