@@ -237,18 +237,19 @@ func resourceRedirectRead(ctx context.Context, d *schema.ResourceData, meta any)
 	}
 
 	d.SetId(d.Id())
-	for i, dst := range respData.Data.Destinations {
-		d.Set(fmt.Sprintf("destination.%d.url", i), dst.Url)
-		d.Set(fmt.Sprintf("destination.%d.expression", i), dst.Expression)
-		d.Set(fmt.Sprintf("destination.%d.monitoring", i), dst.Monitoring)
+	destinations := []map[string]string{}
+	for _, dst := range respData.Data.Destinations {
+		destinations = append(destinations, map[string]string{
+			"url":        dst.Url,
+			"expression": dst.Expression,
+			"monitoring": dst.Monitoring,
+		})
 	}
+	d.Set("destination", destinations)
 
-	sources := make([]interface{}, len(respData.Data.Sources), len(respData.Data.Sources))
-	for i, src := range respData.Data.Sources {
-		source := map[string]interface{}{
-			"url": src.Url,
-		}
-		sources[i] = source
+	sources := []string{}
+	for _, src := range respData.Data.Sources {
+		sources = append(sources, src.Url)
 	}
 	d.Set("sources", sources)
 	d.Set("redirect_type", respData.Data.RedirectType)
