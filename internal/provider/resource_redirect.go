@@ -241,6 +241,10 @@ func resourceRedirectRead(ctx context.Context, d *schema.ResourceData, meta any)
 	d.SetId(d.Id())
 	destinations := []map[string]string{}
 	for _, dst := range respData.Data.Destinations {
+		if dst.Monitoring == "" {
+			dst.Monitoring = "inherit"
+		}
+
 		destinations = append(destinations, map[string]string{
 			"url":        dst.Url,
 			"expression": dst.Expression,
