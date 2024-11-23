@@ -2,7 +2,7 @@
 
 Terraform provider for [redirect.pizza](https://redirect.pizza). This provides provides a single resource `redirectpizza_redirect` to manage all your redirecting needs.
 
-We recommend using the `redirectpizza_redirect` in combination with your DNS Terraform provider is used. 
+We recommend using the `redirectpizza_redirect` in combination with your DNS Terraform provider. 
 You may hardcode the values from https://redirect.pizza/support/dns-type to use for your DNS records or your own [Dedicated IP](https://redirect.pizza/support/dedicated-ip) address.
 
 ## Using the provider
