@@ -12,7 +12,7 @@ terraform {
   required_providers {
     redirectpizza = {
       source  = "github.com/enflow/redirectpizza"
-      version = "0.1.0"
+      version = "0.2.2"
     }
   }
 }
