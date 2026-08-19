@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -25,6 +27,7 @@ func New(version string) func() *schema.Provider {
 }
 
 type apiClient struct {
+	http      *retryablehttp.Client
 	userAgent string
 	baseUrl   string
 	authToken string
@@ -37,6 +40,7 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		userAgent := p.UserAgent("terraform-provider-redirectpizza", version)
 
 		return &apiClient{
+			http:      newRetryableHTTPClient(),
 			userAgent: userAgent,
 			baseUrl:   baseUrl,
 			authToken: token,

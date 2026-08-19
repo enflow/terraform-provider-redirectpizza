@@ -1,11 +1,9 @@
 package provider
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -150,22 +148,12 @@ func resourceRedirectCreate(ctx context.Context, d *schema.ResourceData, meta an
 	reqBody, _ := json.Marshal(data)
 
 	apiClientData := meta.(*apiClient)
-	client := &http.Client{}
-	req, _ := http.NewRequest("POST", apiClientData.baseUrl+"v1/redirects", bytes.NewReader(reqBody))
-	req.Header.Set("Authorization", "Bearer "+apiClientData.authToken)
-	req.Header.Set("User-Agent", apiClientData.userAgent)
-	resp, err := client.Do(req)
+	status, respBody, err := apiClientData.do(ctx, http.MethodPost, "v1/redirects", reqBody)
 	if err != nil {
 		return diag.Errorf("Cannot execute http request: %s", err.Error())
 	}
-
-	respBody, err := io.ReadAll(resp.Body)
-	if resp.StatusCode != 201 {
-		return diag.Errorf("Expected status code 201 but got %d: %s", resp.StatusCode, string(respBody))
-	}
-
-	if err != nil {
-		return diag.Errorf("Cannot read response body: %s", err.Error())
+	if status != http.StatusCreated {
+		return diag.Errorf("Expected status code 201 but got %d: %s", status, string(respBody))
 	}
 
 	respObj, err := parseApiResponse(respBody)
@@ -216,21 +204,12 @@ type httpResponseData struct {
 // https://redirect.pizza/docs#tag/Redirects/operation/getRedirect
 func resourceRedirectRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	apiClientData := meta.(*apiClient)
-	client := &http.Client{}
-	req, _ := http.NewRequest("GET", apiClientData.baseUrl+"v1/redirects/"+d.Id(), bytes.NewReader([]byte{}))
-	req.Header.Set("Authorization", "Bearer "+apiClientData.authToken)
-	req.Header.Set("User-Agent", apiClientData.userAgent)
-	resp, err := client.Do(req)
+	status, body, err := apiClientData.do(ctx, http.MethodGet, "v1/redirects/"+d.Id(), nil)
 	if err != nil {
 		return diag.Errorf("Cannot execute http request: %s", err.Error())
 	}
-	if resp.StatusCode != 200 {
-		return diag.Errorf("Expected http status 200, received: %d", resp.StatusCode)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return diag.Errorf("could not read http response body: %s", err.Error())
+	if status != http.StatusOK {
+		return diag.Errorf("Expected http status 200, received: %d", status)
 	}
 
 	respData, err := parseApiResponse(body)
@@ -272,22 +251,12 @@ func resourceResourceUpdate(ctx context.Context, d *schema.ResourceData, meta an
 	reqBody, _ := json.Marshal(data)
 
 	apiClientData := meta.(*apiClient)
-	client := &http.Client{}
-	req, _ := http.NewRequest("PUT", apiClientData.baseUrl+"v1/redirects/"+d.Id(), bytes.NewReader(reqBody))
-	req.Header.Set("Authorization", "Bearer "+apiClientData.authToken)
-	req.Header.Set("User-Agent", apiClientData.userAgent)
-	resp, err := client.Do(req)
+	status, respBody, err := apiClientData.do(ctx, http.MethodPut, "v1/redirects/"+d.Id(), reqBody)
 	if err != nil {
 		return diag.Errorf("Cannot execute http request: %s", err.Error())
 	}
-
-	respBody, err := io.ReadAll(resp.Body)
-	if resp.StatusCode != 200 {
-		return diag.Errorf("Expected status code 200 but got %d: %s", resp.StatusCode, string(respBody))
-	}
-
-	if err != nil {
-		return diag.Errorf("Cannot read response body: %s", err.Error())
+	if status != http.StatusOK {
+		return diag.Errorf("Expected status code 200 but got %d: %s", status, string(respBody))
 	}
 
 	respObj, err := parseApiResponse(respBody)
@@ -347,21 +316,12 @@ func hydrateHttpPersistData(d *schema.ResourceData) *httpPersistData {
 
 func resourceRedirectDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	apiClientData := meta.(*apiClient)
-	client := &http.Client{}
-	req, _ := http.NewRequest("DELETE", apiClientData.baseUrl+"v1/redirects/"+d.Id(), bytes.NewReader([]byte{}))
-	req.Header.Set("Authorization", "Bearer "+apiClientData.authToken)
-	req.Header.Set("User-Agent", apiClientData.userAgent)
-	resp, err := client.Do(req)
+	status, body, err := apiClientData.do(ctx, http.MethodDelete, "v1/redirects/"+d.Id(), nil)
 	if err != nil {
 		return diag.Errorf("Cannot execute http request: %s", err.Error())
 	}
-	if resp.StatusCode != 204 {
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			body = []byte("<cannot read>")
-		}
-
-		return diag.Errorf("Expected http status 204, received: %d. Error: %s", resp.StatusCode, string(body))
+	if status != http.StatusNoContent {
+		return diag.Errorf("Expected http status 204, received: %d. Error: %s", status, string(body))
 	}
 
 	d.SetId("")
