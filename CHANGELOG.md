@@ -1,4 +1,4 @@
-## 0.2.3 (August 19, 2026)
+## 0.3.0 (August 19, 2026)
 
 ENHANCEMENTS:
 
