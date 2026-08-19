@@ -16,7 +16,7 @@ import (
 
 func resourceRedirect() *schema.Resource {
 	return &schema.Resource{
-		Description: "A redirect is a resource that may contain multiple sources to a single destination.",
+		Description: "Manages a redirect.pizza redirect. One redirect can map many source hostnames to one or more destinations.",
 
 		CreateContext: resourceRedirectCreate,
 		ReadContext:   resourceRedirectRead,
@@ -29,7 +29,7 @@ func resourceRedirect() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"sources": {
-				Description: "The source domains (that the user enters in their browser).",
+				Description: "Source hostnames or URLs visitors enter in their browser.",
 				Type:        schema.TypeSet,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -40,22 +40,22 @@ func resourceRedirect() *schema.Resource {
 			},
 
 			"destination": {
-				Description: "The URL(s)where the user is redirected to.",
+				Description: "Destination URLs. Order is significant for dynamic destinations. When more than one destination is set, all but the fallback must include an expression.",
 				Type:        schema.TypeList, // The order of the destinations is relevant. Therefore this is a TypeList instead of a Set
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"url": {
-							Description: "the URL to redirect the user to",
+							Description: "The URL to redirect the visitor to.",
 							Type:        schema.TypeString,
 							Required:    true,
 						},
 						"expression": {
-							Description: "The expression to evaluate for redirecting to the specified URL. Mandatory if multiple destinations are specified.",
+							Description: "Expression that selects this destination. Required on all but one destination when multiple destinations are set.",
 							Type:        schema.TypeString,
 							Optional:    true,
 						},
 						"monitoring": {
-							Description: "The monitoring status for this destination. (must be one of: 'inherit' - default, 'enabled', 'disabled')",
+							Description: "Broken-destination monitoring for this URL. One of `inherit` (default), `enabled`, or `disabled`.",
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "inherit",
@@ -67,7 +67,7 @@ func resourceRedirect() *schema.Resource {
 			},
 
 			"redirect_type": {
-				Description:      "The type of redirect to use.",
+				Description:      "Redirect type. One of `permanent` (301), `temporary` (302), `permanent:308`, `temporary:307`, or `frame`.",
 				Type:             schema.TypeString,
 				Optional:         true,
 				ValidateDiagFunc: redirectTypeValidator,
@@ -96,7 +96,7 @@ func resourceRedirect() *schema.Resource {
 			},
 
 			"tags": {
-				Description: "Used to categorize redirects. May be an array or a string of comma-separated tags.",
+				Description: "Tags used to categorize this redirect.",
 				Type:        schema.TypeSet,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,

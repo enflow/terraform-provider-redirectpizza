@@ -1,7 +1,7 @@
 package main
 
 import (
-    "flag"
+	"flag"
 
 	"github.com/enflow/terraform-provider-redirectpizza/internal/provider"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
@@ -11,7 +11,7 @@ var (
 	version string = "0.1.0"
 )
 
-//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.20.0 generate --provider-name=redirectpizza
 
 func main() {
 	var debugMode bool
@@ -22,7 +22,7 @@ func main() {
 	opts := &plugin.ServeOpts{
 		Debug: debugMode,
 
-		ProviderAddr: "github.com/enflow/redirectpizza",
+		ProviderAddr: "registry.terraform.io/enflow/redirectpizza",
 
 		ProviderFunc: provider.New(version),
 	}

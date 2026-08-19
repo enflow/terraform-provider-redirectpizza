@@ -23,13 +23,13 @@ jobs:
 
       - uses: hashicorp/setup-terraform@v4
       - run: |
-          cat <<~EOF >> ~/.terraformrc
+          cat <<'EOF' >> ~/.terraformrc
             provider_installation {
               dev_overrides {
-                "github.com/enflow/redirectpizza" = "/home/runner/work/terraform-provider-redirectpizza/terraform-provider-redirectpizza"
+                "enflow/redirectpizza" = "/home/runner/work/terraform-provider-redirectpizza/terraform-provider-redirectpizza"
               }
             }
-          ~EOF
+          EOF
 
       - name: plan
         run: terraform plan

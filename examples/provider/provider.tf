@@ -15,7 +15,4 @@ variable "rp_token" {
 
 provider "redirectpizza" {
   token = var.rp_token
-
-  # Optional, defaults to https://redirect.pizza/api/
-  # api_base_url = "https://redirect.pizza/api/"
 }

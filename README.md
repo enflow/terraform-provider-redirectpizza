@@ -1,25 +1,26 @@
 # redirect.pizza Terraform Provider
 
-Terraform provider for [redirect.pizza](https://redirect.pizza). This provides provides a single resource `redirectpizza_redirect` to manage all your redirecting needs.
+Terraform provider for [redirect.pizza](https://redirect.pizza). Use the `redirectpizza_redirect` resource to manage redirects as code.
 
-We recommend using the `redirectpizza_redirect` in combination with your DNS Terraform provider. 
-You may hardcode the values from https://redirect.pizza/support/dns-type to use for your DNS records or your own [Dedicated IP](https://redirect.pizza/support/dedicated-ip) address.
+Use this provider together with your DNS provider. You may hardcode values from the [DNS records](https://redirect.pizza/support/dns-type) documentation, or your own [Dedicated IP](https://redirect.pizza/support/dedicated-ip).
 
 ## Using the provider
 
-```
+```hcl
 terraform {
   required_providers {
     redirectpizza = {
-      source  = "github.com/enflow/redirectpizza"
-      version = "0.2.2"
+      source  = "enflow/redirectpizza"
+      version = "~> 0.2"
     }
   }
 }
 
-# Set the variable value in *.tfvars file
-# or using -var="rp_token=..." CLI option
-variable "rp_token" {}
+# Set the variable value in a *.tfvars file or with -var="rp_token=..."
+variable "rp_token" {
+  type      = string
+  sensitive = true
+}
 
 provider "redirectpizza" {
   token = var.rp_token
@@ -27,47 +28,53 @@ provider "redirectpizza" {
 
 resource "redirectpizza_redirect" "old-domain" {
   sources = [
-    "old-domain.com"
+    "old-domain.com",
   ]
+
   destination {
-    url = "new-domain.com"
+    url = "https://new-domain.com"
   }
 
-  # Optional
-  # Must be one of:
-  # - permanent
-  # - permanent:307
-  # - permanent:308
-  # - temporary
-  # - frame
+  # Optional. One of: permanent, temporary, permanent:308, temporary:307, frame
   redirect_type = "permanent"
 
-  # Optional
-  tracking       = true
-  uri_forwarding = true
-  keep_query_string     = false
-  tags                  = ["prod", "dev"]
+  tracking          = true
+  uri_forwarding    = true
+  keep_query_string = false
+  tags              = ["prod", "dev"]
 }
 ```
 
 ## Requirements
 
--	[Terraform](https://www.terraform.io/downloads.html) >= 0.13.x
--	[Go](https://golang.org/doc/install) >= 1.18
+- [Terraform](https://www.terraform.io/downloads.html) >= 0.13.x
+- [Go](https://golang.org/doc/install) >= 1.18
 
 ## Import
-To import existing redirect.pizza redirects to Terraform's state, you may use the `import` block. 
-The `id` can be found in the redirect.pizza's API response or in the URL when navigating to a specific redirect. Example: https://redirect.pizza/redirects/123123123
 
+The import ID is the numeric redirect ID from the API or from the dashboard URL (for example `https://redirect.pizza/redirects/123123123`).
+
+Terraform 1.5+ `import` block:
+
+```hcl
+import {
+  to = redirectpizza_redirect.old-domain
+  id = "123123123"
+}
 ```
-terraform import redirectpizza_redirect.old-domain.com 123123123
+
+CLI:
+
+```sh
+terraform import redirectpizza_redirect.old-domain 123123123
 ```
 
 ## Building The Provider
 
 1. Clone the repository
 1. Enter the repository directory
-1. Build the provider using the Go `install` command: 
+1. Build the provider using the Go `install` command:
+
 ```sh
 $ go install
 ```
@@ -77,7 +84,7 @@ $ go install
 This provider uses [Go modules](https://github.com/golang/go/wiki/Modules).
 Please see the Go documentation for the most up to date information about using Go modules.
 
-To add a new dependency `github.com/author/dependency` to your Terraform provider:
+To add a new dependency `github.com/author/dependency` to this Terraform provider:
 
 ```
 go get github.com/author/dependency
@@ -94,4 +101,8 @@ To compile the provider, run `go install`. This will build the provider and put 
 
 To generate or update documentation, run `go generate`.
 
-To run locally, run `(cd ..; export GOBIN=$(pwd); go install) && TF_LOG=WARN TF_VAR_rp_token=rpa_xxxxxxxxxxxx terraform apply` in the `examples/` directory.
+To run locally, add a [development override](https://developer.hashicorp.com/terraform/cli/config/config-file#development-overrides-for-provider-developers) for `enflow/redirectpizza` (or `registry.terraform.io/enflow/redirectpizza`) pointing at the directory that contains the built binary. Then from `examples/`:
+
+```sh
+(cd ..; export GOBIN=$(pwd); go install) && TF_LOG=WARN TF_VAR_rp_token=rpa_xxxxxxxxxxxx terraform apply
+```

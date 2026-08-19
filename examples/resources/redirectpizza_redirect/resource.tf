@@ -1,12 +1,10 @@
-resource "redirectpizza_redirect" "old-source" {
+resource "redirectpizza_redirect" "example" {
   sources = [
-    "old-source.be",
-    "old-source.uk",
-    "old-source.nl",
+    "old-domain.com",
   ]
 
   destination {
-    url = "https://new-fancy-site3.nl"
+    url = "https://new-domain.com"
   }
 
   # Optional. One of: permanent, temporary, permanent:308, temporary:307, frame
@@ -15,11 +13,11 @@ resource "redirectpizza_redirect" "old-source" {
   tracking          = true
   uri_forwarding    = true
   keep_query_string = false
-  tags              = ["prod", "dev"]
+  tags              = ["prod", "legacy"]
 }
 
 # Dynamic destinations: all but the fallback need an expression.
-resource "redirectpizza_redirect" "old-source2" {
+resource "redirectpizza_redirect" "geo" {
   sources = [
     "old-dynamic-source.com",
   ]

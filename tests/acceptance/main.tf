@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     redirectpizza = {
-      source  = "github.com/enflow/redirectpizza"
+      source  = "enflow/redirectpizza"
     }
   }
 }
